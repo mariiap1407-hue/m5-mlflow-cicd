@@ -50,6 +50,14 @@ with mlflow.start_run(run_name="entrainement-rf"):
 
     search.fit(X_train, y_train)
 
+    for i, (params, score) in enumerate(zip(
+        search.cv_results_["params"],
+        search.cv_results_["mean_test_score"],
+    )):
+        with mlflow.start_run(run_name=f"combo-{i}", nested=True):
+            mlflow.log_params(params)
+            mlflow.log_metric("cv_recall", score)
+
     mlflow.log_params(search.best_params_)
     mlflow.log_metric("cv_best_recall", search.best_score_)
 
