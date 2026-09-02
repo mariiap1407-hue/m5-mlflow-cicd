@@ -10,4 +10,4 @@ pip install -r requirements.txt
 
 Aucun modèle n'est fourni : c'est à vous de réécrire l'entraînement en script
 et de l'exécuter. Le reste (API, Dockerfile, docker-compose, tests, workflow
-GitHub Actions) est aussi à construire par vos soins — voir `brief_m5.md`.
+GitHub Actions) est aussi à construire par vos soins.
