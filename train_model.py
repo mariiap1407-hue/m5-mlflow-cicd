@@ -93,6 +93,7 @@ with mlflow.start_run(run_name="entrainement-rf"):
             "imblearn.pipeline.Pipeline",
             "imblearn.under_sampling._prototype_selection._random_under_sampler.RandomUnderSampler",
             "numpy.dtype",
+            "sklearn.tree._tree.Tree",
         ],
     )
 
@@ -105,6 +106,7 @@ with mlflow.start_run(run_name="entrainement-rf"):
             "imblearn.pipeline.Pipeline",
             "imblearn.under_sampling._prototype_selection._random_under_sampler.RandomUnderSampler",
             "numpy.dtype",
+            "sklearn.tree._tree.Tree",
         ],
     )
 
