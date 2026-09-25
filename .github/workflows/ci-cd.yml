@@ -22,4 +22,10 @@ jobs:
         run: python train_model.py
 
       - name: Executer les tests
-        run: pytest tests/ -v
+        run: pytest tests/ -v -s
+
+      - name: Faire remonter le modele
+        uses: actions/upload-artifact@v4
+        with:
+          name: model
+          path: model/
