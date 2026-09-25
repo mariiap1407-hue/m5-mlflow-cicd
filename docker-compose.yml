@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mlflow
+  mlflow:
+    image: python:3.12-slim
+    ports:
+      - "5000:5000"
+    command:
+      sh -c "pip install mlflow==3.15.2 && mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////mlflow-data/mlflow.db"
+    volumes:
+      - ./mlflow-data:/mlflow-data
