@@ -12,6 +12,7 @@ from sklearn.metrics import accuracy_score, recall_score, f1_score, roc_auc_scor
 from imblearn.pipeline import Pipeline
 from imblearn.under_sampling import RandomUnderSampler
 from mlflow import MlflowClient
+import shutil
 
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
 mlflow.set_experiment("diabetes-risk")
@@ -83,6 +84,18 @@ with mlflow.start_run(run_name="entrainement-rf"):
     mlflow.log_metric("false_negatives", fn)
     mlflow.log_metric("true_positives", tp)
 
+    shutil.rmtree("model", ignore_errors=True)
+    mlflow.sklearn.save_model(
+        sk_model=best_pipeline,
+        path="model",
+        input_example=X_test.head(),
+        skops_trusted_types=[
+            "imblearn.pipeline.Pipeline",
+            "imblearn.under_sampling._prototype_selection._random_under_sampler.RandomUnderSampler",
+            "numpy.dtype",
+        ],
+    )
+
     model_info = mlflow.sklearn.log_model(
         sk_model=best_pipeline,
         name="model",
@@ -94,6 +107,7 @@ with mlflow.start_run(run_name="entrainement-rf"):
             "numpy.dtype",
         ],
     )
+
 
     client = MlflowClient()
     version = client.get_latest_versions("diabetes-risk-model")[0].version
