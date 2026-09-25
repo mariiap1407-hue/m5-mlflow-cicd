@@ -2,9 +2,10 @@ import pandas as pd
 import mlflow
 from sklearn.metrics import recall_score
 
+
 RECALL_THRESHOLD = 0.60
 MODEL_PATH = "model"
-REFERENCE_DATA = "data/reference/diabetes_reference.csv"
+REFERENCE_DATA = "data/reference/diabetes_reference_drifted.csv"
 
 FEATURES = [
     "pregnancies", "glucose", "blood_pressure", "skin_thickness",
