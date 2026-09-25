@@ -13,8 +13,10 @@ from imblearn.pipeline import Pipeline
 from imblearn.under_sampling import RandomUnderSampler
 from mlflow import MlflowClient
 import shutil
+import os
 
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+USE_REGISTRY = os.getenv("USE_REGISTRY", "true").lower() == "true"
 mlflow.set_experiment("diabetes-risk")
 
 df = pd.read_csv("data/raw/diabetes_train.csv")
@@ -100,7 +102,7 @@ with mlflow.start_run(run_name="entrainement-rf"):
     model_info = mlflow.sklearn.log_model(
         sk_model=best_pipeline,
         name="model",
-        registered_model_name="diabetes-risk-model",
+        registered_model_name="diabetes-risk-model" if USE_REGISTRY else None,
         input_example=X_test.head(),
         skops_trusted_types=[
             "imblearn.pipeline.Pipeline",
@@ -111,15 +113,18 @@ with mlflow.start_run(run_name="entrainement-rf"):
     )
 
 
-    client = MlflowClient()
-    version = client.get_latest_versions("diabetes-risk-model")[0].version
+    if USE_REGISTRY:
+        client = MlflowClient()
+        version = client.get_latest_versions("diabetes-risk-model")[0].version
 
-    client.set_registered_model_alias(
-        name="diabetes-risk-model",
-        alias="production",
-        version=version,)
-    client.transition_model_version_stage(
-        name="diabetes-risk-model",
-        version=version,
-        stage="Production",
-        archive_existing_versions=True,)
+        client.set_registered_model_alias(
+            name="diabetes-risk-model",
+            alias="production",
+            version=version,
+        )
+        client.transition_model_version_stage(
+            name="diabetes-risk-model",
+            version=version,
+            stage="Production",
+            archive_existing_versions=True,
+        )
