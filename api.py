@@ -2,9 +2,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import mlflow
 import pandas as pd
+import os
 
-mlflow.set_tracking_uri("http://127.0.0.1:5000")
-model = mlflow.sklearn.load_model("models:/diabetes-risk-model@production")
+
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"))
+model_uri = os.getenv("MODEL_URI", "models:/diabetes-risk-model@production")
+model = mlflow.sklearn.load_model(model_uri)
 
 app = FastAPI()
 
