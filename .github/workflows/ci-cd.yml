@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      MLFLOW_TRACKING_URI: file:./mlruns
+      MLFLOW_TRACKING_URI: sqlite:///mlflow.db
       USE_REGISTRY: "false"
     steps:
       - uses: actions/checkout@v4
