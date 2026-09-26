@@ -23,10 +23,6 @@ n'est pas atteint.
 
 ### Installation
 
-L'environnement local sert au développement, à l'entraînement et aux tests.
-Le conteneur Docker ne contient que l'API et le modèle, et suffit pour servir
-des prédictions.
-
 ```bash
 conda create -n task10 python=3.12 -y
 conda activate task10
@@ -106,20 +102,10 @@ notebooks/              Notebook d'exploration d'origine
 - **36 runs enfants**, un par combinaison de la grille, chacun avec ses
   hyperparamètres et son rappel moyen en validation croisée.
 
-![Matrice de confusion du modèle retenu](docs/confusion_matrix.png)
-
-*68 vrais négatifs, 24 faux positifs, 18 faux négatifs, 30 vrais positifs.
-Soit un rappel de 30 / (30 + 18) = 0,625 sur le jeu de test interne.*
-
 Le modèle retenu est enregistré au Model Registry sous le nom
 `diabetes-risk-model`, avec le stage `Production` et l'alias `production`.
 Il est également sauvegardé en local dans `model/`, format que le Dockerfile
 copie dans l'image.
-
-![Le modèle enregistré au Registry avec l'alias production](docs/model_registery.png)
-
-*La nouvelle interface MLflow n'affiche plus de colonne « Stage » : la
-dépréciation est visible jusque dans l'UI.*
 
 ### L'API
 
@@ -346,10 +332,6 @@ Le pipeline a été vérifié dans les deux sens.
 test passe, l'image est construite et poussée sur `ghcr.io`, le smoke test
 confirme que `/health` répond.
 
-![Pipeline complet au vert](docs/workflow_success.png)
-
-![L'artifact model produit par le job test](docs/workflow_success_artefacts.png)
-
 **Cas dégradé** — en pointant temporairement le test sur
 `diabetes_reference_drifted.csv`, un jeu dont les profils restent
 statistiquement proches mais où le lien entre caractéristiques cliniques et
@@ -361,16 +343,9 @@ Le test échoue alors avec un message explicite :
 AssertionError: Rappel 0.5909 sous le seuil requis de 0.6
 ```
 
-![Le test échoue avec le rappel sous le seuil](docs/pytest_failure_recall_visible.png)
-
 Le job `build-and-push` est **skipped**, et non pas *failed* : il n'a jamais
 démarré, parce que son `needs: test` n'est pas satisfait. Aucune image n'est
 construite ni poussée.
-
-![Le job build-and-push est skipped, aucune image n'est poussée](docs/workflow_failure.png)
-
-*La colonne Artifacts affiche un tiret : rien n'a été produit, pas même le
-modèle entraîné.*
 
 C'est le comportement attendu d'un quality gate : la dégradation est détectée
 avant la livraison, et l'image publiée sur `ghcr.io` est toujours celle qui
