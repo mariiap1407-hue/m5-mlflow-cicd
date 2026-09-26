@@ -71,6 +71,18 @@ docker compose up -d
 - API : http://localhost:8000
 - MLflow : http://localhost:5000
 
+### API déployée (bonus 2)
+
+Une instance publique tourne sur Render, à partir de l'image publiée sur
+`ghcr.io` — celle-là même qui a passé le quality gate, sans reconstruction :
+
+**https://diabetes-api-m2ct.onrender.com/docs**
+
+![L'API déployée sur Render](docs/render_test.png)
+
+L'instance gratuite s'endort après 15 minutes d'inactivité : la première
+requête peut prendre une minute.
+
 ### Exécuter le test de non-régression
 
 ```bash
@@ -123,12 +135,13 @@ dépréciation est visible jusque dans l'UI.*
 
 ### L'API
 
-Deux endpoints :
+Trois endpoints :
 
 | Méthode | Route | Rôle |
 |---|---|---|
 | GET | `/health` | Vérification de disponibilité (smoke test) |
 | POST | `/predict` | Prédiction pour un profil patient |
+| POST | `/explain` | Explication SHAP de la prédiction (bonus 1) |
 
 Exemple de requête :
 
@@ -157,6 +170,55 @@ permet au même code de fonctionner en local et en conteneur :
 Dans l'image Docker, `MODEL_URI` vaut `/app/model` : l'API charge le modèle
 depuis un fichier embarqué et ne dépend d'aucun serveur MLflow. C'est cette
 autonomie qui rend le smoke test possible dans le pipeline.
+
+### L'endpoint `/explain` (bonus 1 — interprétabilité)
+
+`/explain` renvoie la même prédiction que `/predict`, accompagnée de la
+contribution de chacune des huit variables, triée par poids décroissant :
+
+```json
+{
+  "prediction": 1,
+  "probability": 0.846,
+  "contributions": [
+    {"feature": "glucose", "value": 180.0, "shap": 0.1828,
+     "sens": "augmente le risque"},
+    {"feature": "bmi", "value": 38.5, "shap": 0.0439,
+     "sens": "augmente le risque"}
+  ]
+}
+```
+
+Deux détails d'implémentation méritent d'être signalés.
+
+**Le modèle est un pipeline, pas un arbre.** `shap.TreeExplainer` n'accepte que
+des modèles à base d'arbres. Le RandomForest est donc extrait du pipeline
+(`model.named_steps["model"]`), et les données du patient sont passées dans
+l'imputer puis le scaler avant d'être expliquées — mais pas dans
+l'undersampler, qui ne s'applique qu'à l'entraînement.
+
+**Les contributions portent sur les données standardisées, les valeurs
+affichées sont les valeurs brutes.** Une contribution associée à « glycémie
+standardisée de 2,1 » ne se discute pas avec un patient ; « votre glycémie de
+180 » si.
+
+Comparaison de deux profils, qui illustre ce que les `feature_importances_`
+globales du notebook ne peuvent pas dire :
+
+| Variable | Patient à risque | Patient sain |
+|---|---|---|
+| glucose | 180 → **+0,183** | 85 → **−0,209** |
+| bmi | 38,5 → +0,044 | 22 → −0,052 |
+| probabilité | 0,85 | 0,06 |
+
+Même variable, même modèle, effet opposé selon la valeur du patient. C'est la
+différence entre une explication **globale** (« la glycémie compte beaucoup en
+général ») et une explication **locale** (« pour ce patient, c'est sa glycémie
+de 180 qui a décidé »).
+
+![Explication SHAP pour un patient à risque](docs/shap_risque.png)
+
+![Explication SHAP pour un patient sain](docs/shap_healthy.png)
 
 ### Le pipeline CI/CD
 
@@ -299,6 +361,12 @@ assumée : les zéros restent autorisés sur `insulin` et `skin_thickness`, alor
 qu'ils sont interdits sur `glucose`, `blood_pressure` et `bmi`. La raison est
 détaillée ci-dessous.
 
+Ces bornes restent volontairement larges, et donc trop permissives : une
+tension de 1 mmHg ou un IMC de 1 passent la validation. Elles écartent les
+erreurs de saisie grossières, pas les profils physiologiquement absurdes. En
+production, on resserrerait avec de vrais minimums cliniques (tension entre 40
+et 200 mmHg, IMC entre 12 et 70).
+
 ---
 
 ## Limites identifiées
@@ -388,3 +456,6 @@ vient de passer la porte.
 | `docker-compose.yml` | API + serveur MLflow |
 | `tests/test_model_quality.py` | Test de non-régression (seuil 0,60) |
 | `.github/workflows/ci-cd.yml` | Pipeline CI/CD |
+
+**Bonus réalisés :** endpoint `/explain` avec `shap.TreeExplainer` (bonus 1) et
+déploiement public sur Render depuis l'image `ghcr.io` (bonus 2).
