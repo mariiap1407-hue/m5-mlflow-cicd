@@ -11,3 +11,4 @@ uvicorn[standard]
 pydantic
 pytest
 httpx
+shap==0.52.0
