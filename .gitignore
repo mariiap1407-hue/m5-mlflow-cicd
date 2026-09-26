@@ -8,6 +8,5 @@ mlruns/
 
 mlflow.db
 mlartifacts/
-confusion_matrix.png
 model/
 mlflow-data/
