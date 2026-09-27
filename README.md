@@ -64,12 +64,25 @@ Documentation interactive : http://127.0.0.1:8000/docs
 
 ### Lancer l'ensemble avec Docker
 
+> **Prérequis :** le Dockerfile copie le dossier `model/` dans l'image, et ce
+> dossier n'est pas versionné. Il faut donc avoir exécuté `python train_model.py`
+> au moins une fois avant de construire l'image, sinon le build échoue sur
+> `COPY model/`.
+
 ```bash
+python train_model.py     # si le dossier model/ n'existe pas encore
 docker compose up -d
 ```
 
 - API : http://localhost:8000
 - MLflow : http://localhost:5000
+
+Les deux services déclarent un `healthcheck`, et l'API attend que MLflow soit
+réellement prêt (`depends_on: condition: service_healthy`), pas seulement que
+son conteneur existe. Le service MLflow installant MLflow à son démarrage,
+cette attente dure environ 75 secondes.
+
+![Les deux services en état healthy](docs/healthy_docker.png)
 
 ### API déployée (bonus 2)
 
@@ -297,6 +310,27 @@ Les deux mécanismes ont donc été implémentés :
 Le concept est le même — un nom stable pointant vers une version — mais les
 alias sont plus souples : plusieurs alias peuvent coexister sur une version, et
 un alias se déplace sans obliger à archiver quoi que ce soit.
+
+### Promotion conditionnelle au Registry
+
+Le quality gate du pipeline empêche la publication d'une image non testée. Mais
+en local, rien n'empêchait `train_model.py` de poser l'alias `production` sur un
+modèle médiocre : le test pytest s'exécute après l'entraînement, pas pendant.
+
+Le script calcule donc le rappel sur le jeu de référence avant la promotion, et
+la refuse sous 0,60 :
+
+```
+recall reference: 0.6825
+```
+
+Le modèle reste enregistré au Registry dans tous les cas — c'est l'étiquette
+`production` qui est conditionnelle. On garde ainsi la trace d'un mauvais modèle
+sans le désigner comme référence. La valeur est loggée en métrique
+`reference_recall`, ce qui permet d'en suivre l'évolution run après run.
+
+Ce contrôle ne s'exécute pas dans le CI, où `USE_REGISTRY` vaut `false` : c'est
+le test pytest qui y joue ce rôle, en amont du build de l'image.
 
 ### Épinglage des versions
 

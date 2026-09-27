@@ -5,8 +5,10 @@ __pycache__/
 mlruns/
 .pytest_cache/
 .DS_Store
+.ipynb_checkpoints/
 
 mlflow.db
 mlartifacts/
 model/
 mlflow-data/
+/confusion_matrix.png

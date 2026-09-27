@@ -114,17 +114,25 @@ with mlflow.start_run(run_name="entrainement-rf"):
 
 
     if USE_REGISTRY:
-        client = MlflowClient()
-        version = client.get_latest_versions("diabetes-risk-model")[0].version
+        ref = pd.read_csv("data/reference/diabetes_reference.csv")
+        ref_recall = recall_score(ref["outcome"], best_pipeline.predict(ref[FEATURES]))
+        mlflow.log_metric("reference_recall", ref_recall)
+        print("recall reference:", round(ref_recall, 4))
 
-        client.set_registered_model_alias(
-            name="diabetes-risk-model",
-            alias="production",
-            version=version,
-        )
-        client.transition_model_version_stage(
-            name="diabetes-risk-model",
-            version=version,
-            stage="Production",
-            archive_existing_versions=True,
-        )
+        if ref_recall < 0.60:
+            print(f"Rappel {ref_recall:.4f} sous le seuil de 0.60 : promotion annulee.")
+        else:
+            client = MlflowClient()
+            version = client.get_latest_versions("diabetes-risk-model")[0].version
+
+            client.set_registered_model_alias(
+                name="diabetes-risk-model",
+                alias="production",
+                version=version,
+            )
+            client.transition_model_version_stage(
+                name="diabetes-risk-model",
+                version=version,
+                stage="Production",
+                archive_existing_versions=True,
+            )
